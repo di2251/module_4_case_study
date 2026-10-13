@@ -2,29 +2,84 @@
 title: "case_study"
 author: "di2251"
 date: "2026-10-13"
-output: github_document
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+library(p8105.datasets)
+data("nyc_airbnb")
+library(tidyverse)
+library(leaflet)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(ggplot2.continuous.colour = "viridis", ggplot2.continuous.fill = "viridis")
+
+scale_colour_discrete = scale_colour_viridis_d()
+scale_fill_discrete()
+scale_fill_viridis_d()
 ```
 
-## R Markdown
+Understanding variables:
+```{r}
+# View(nyc_airbnb)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+str(nyc_airbnb)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+nyc_airbnb |>
+  count(room_type, neighbourhood_group)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(price < 500) |>
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) |>
+  ggplot(aes(x = neighbourhood, y = price)) + 
+  geom_boxplot() + 
+  facet_grid(. ~ room_type) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+visualize price some more:
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  ggplot(aes(x = lat, y = long, color = price)) +
+  geom_point(alpha = .5)
+```
+
+make a leaflet map:
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  sample_n(50) |>
+  leaflet() |>
+  addTiles() |>
+  addMarkers(~lat, ~long)
+
+pal = colorNumeric(
+  palette = "viridis",
+  domain = 1:500
+)
+
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  sample_n(500) |>
+  leaflet() |>
+  addTiles() |>
+  addCircleMarkers(~lat, ~long, color = ~pal(price), radius = .5) 
+```
+
